@@ -52,7 +52,39 @@ def create_app():
 
     return app
 
+from flask import Flask, jsonify
+from flask_cors import CORS
+from flask_jwt_extended import JWTManager
+from config import Config
+from models import db
+from routes import register_blueprints
 
+def create_app():
+    app = Flask(__name__)
+    app.config.from_object(Config)
+    
+    # Initialize extensions
+    db.init_app(app)
+    CORS(app, resources={r"/api/*": {"origins": "*"}})
+    JWTManager(app)
+
+    # Register blueprints
+    register_blueprints(app)
+
+    # Health check
+    @app.route('/api/health', methods=['GET'])
+    def health_check():
+        return jsonify({'status': 'healthy'}), 200
+
+    # Create tables
+    with app.app_context():
+        db.create_all()
+
+    return app
+
+
+# ← Add this at the very bottom of the file
 if __name__ == '__main__':
     app = create_app()
-    app.run()
+    app.run(debug=False, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
